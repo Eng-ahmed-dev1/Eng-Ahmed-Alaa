@@ -1,0 +1,307 @@
+lucide.createIcons();
+
+/* * 1. CUSTOM CURSOR LOGIC 
+ */
+const cursor = document.getElementById('custom-cursor');
+const follower = document.getElementById('cursor-follower');
+const cursorText = follower.querySelector('span');
+
+let cursorX = 0, cursorY = 0;
+let followerX = 0, followerY = 0;
+
+window.addEventListener('mousemove', (e) => {
+    cursorX = e.clientX;
+    cursorY = e.clientY;
+
+    cursor.style.left = cursorX + 'px';
+    cursor.style.top = cursorY + 'px';
+
+    // Initial position for follower to prevent jump
+    if (followerX === 0) {
+        followerX = cursorX;
+        followerY = cursorY;
+    }
+});
+
+// Smooth follow animation for the outer ring
+const renderCursor = () => {
+    followerX += (cursorX - followerX - 20) * 0.15; // 20 is half of original width
+    followerY += (cursorY - followerY - 20) * 0.15;
+
+    follower.style.left = followerX + 'px';
+    follower.style.top = followerY + 'px';
+
+    requestAnimationFrame(renderCursor);
+};
+renderCursor();
+
+// Cursor visibility handling
+document.addEventListener('mouseenter', () => {
+    cursor.style.opacity = 1;
+    follower.style.opacity = 1;
+});
+document.addEventListener('mouseleave', () => {
+    cursor.style.opacity = 0;
+    follower.style.opacity = 0;
+});
+
+// Hover effect detection
+const interactives = document.querySelectorAll('.cursor-active, a, button, .tilt-card');
+interactives.forEach(el => {
+    el.addEventListener('mouseenter', () => {
+        document.body.classList.add('cursor-hover');
+        if (el.tagName === 'A' || el.tagName === 'BUTTON') {
+            if (el.href && el.href.includes('github')) {
+                cursorText.innerText = 'GitHub';
+            } else {
+                cursorText.innerText = el.innerText.includes('View') ? 'Open' : 'Link';
+            }
+        } else if (el.classList.contains('tilt-card')) {
+            cursorText.innerText = 'GitHub';
+        } else {
+            cursorText.innerText = 'Click';
+        }
+    });
+    el.addEventListener('mouseleave', () => {
+        document.body.classList.remove('cursor-hover');
+    });
+});
+
+/* * 2. TYPEWRITER EFFECT
+ */
+const typeWriterElement = document.getElementById('typewriter');
+const textsToType = [
+    "Software Engineer",
+    ".NET Engineer",
+    "Backend Developer",
+    "Solution Architect"
+];
+let textIndex = 0;
+let charIndex = 0;
+let isDeleting = false;
+let typeSpeed = 100;
+
+function typeWriter() {
+    const currentText = textsToType[textIndex];
+
+    if (isDeleting) {
+        typeWriterElement.textContent = currentText.substring(0, charIndex - 1);
+        charIndex--;
+        typeSpeed = 50; // Faster when deleting
+    } else {
+        typeWriterElement.textContent = currentText.substring(0, charIndex + 1);
+        charIndex++;
+        typeSpeed = 100; // Normal typing speed
+    }
+
+    if (!isDeleting && charIndex === currentText.length) {
+        // Finished typing word, pause before deleting
+        isDeleting = true;
+        typeSpeed = 2000;
+    } else if (isDeleting && charIndex === 0) {
+        // Finished deleting, move to next word
+        isDeleting = false;
+        textIndex = (textIndex + 1) % textsToType.length;
+        typeSpeed = 500;
+    }
+
+    setTimeout(typeWriter, typeSpeed);
+}
+
+// Start typing effect when page loads
+document.addEventListener('DOMContentLoaded', () => {
+    if (typeWriterElement) {
+        typeWriter();
+    }
+});
+
+
+/* * 3. PARTICLE NETWORK ANIMATION 
+ */
+const canvas = document.getElementById('neural-canvas');
+const ctx = canvas.getContext('2d');
+let particles = [];
+let mouse = { x: null, y: null, radius: 150 };
+
+window.addEventListener('mousemove', (event) => {
+    mouse.x = event.x;
+    mouse.y = event.y;
+});
+
+const resizeCanvas = () => {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+};
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+class Particle {
+    constructor() {
+        this.x = Math.random() * canvas.width;
+        this.y = Math.random() * canvas.height;
+        this.vx = (Math.random() - 0.5) * 0.4;
+        this.vy = (Math.random() - 0.5) * 0.4;
+        this.size = Math.random() * 1.5;
+        this.density = (Math.random() * 20) + 1;
+    }
+    update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        if (mouse.x != null) {
+            let dx = mouse.x - this.x;
+            let dy = mouse.y - this.y;
+            let distance = Math.sqrt(dx * dx + dy * dy);
+            if (distance < mouse.radius) {
+                this.x += (dx / distance) * (mouse.radius - distance) / 100;
+                this.y += (dy / distance) * (mouse.radius - distance) / 100;
+            }
+        }
+        if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
+        if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+    }
+    draw() {
+        ctx.fillStyle = 'rgba(59, 130, 246, 0.4)';
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
+const initParticles = () => {
+    particles = [];
+    for (let i = 0; i < 80; i++) particles.push(new Particle());
+};
+
+const animateParticles = () => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (let i = 0; i < particles.length; i++) {
+        particles[i].update();
+        particles[i].draw();
+        for (let j = i; j < particles.length; j++) {
+            const dx = particles[i].x - particles[j].x;
+            const dy = particles[i].y - particles[j].y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            if (distance < 100) {
+                ctx.beginPath();
+                ctx.strokeStyle = `rgba(59, 130, 246, ${0.15 - distance / 800})`;
+                ctx.moveTo(particles[i].x, particles[i].y);
+                ctx.lineTo(particles[j].x, particles[j].y);
+                ctx.stroke();
+            }
+        }
+    }
+    requestAnimationFrame(animateParticles);
+};
+initParticles();
+animateParticles();
+
+/* * 4. SCROLL REVEAL & TILT 
+ */
+const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            entry.target.classList.add('active');
+        }
+    });
+}, { threshold: 0.1 });
+
+document.querySelectorAll('.reveal-section').forEach(section => observer.observe(section));
+
+document.querySelectorAll('.tilt-card').forEach(card => {
+    card.addEventListener('mousemove', (e) => {
+        const rect = card.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+        card.style.transform = `perspective(1000px) rotateX(${((y - centerY) / centerY) * -5}deg) rotateY(${((x - centerX) / centerX) * 5}deg)`;
+        card.style.setProperty('--mouse-x', `${(x / rect.width) * 100}%`);
+        card.style.setProperty('--mouse-y', `${(y / rect.height) * 100}%`);
+    });
+    card.addEventListener('mouseleave', () => {
+        card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg)`;
+    });
+});
+
+document.querySelectorAll('.magnetic-btn').forEach(btn => {
+    btn.addEventListener('mousemove', (e) => {
+        const rect = btn.getBoundingClientRect();
+        const x = e.clientX - rect.left - rect.width / 2;
+        const y = e.clientY - rect.top - rect.height / 2;
+        btn.style.transform = `translate(${x * 0.3}px, ${y * 0.3}px)`;
+    });
+    btn.addEventListener('mouseleave', () => btn.style.transform = `translate(0, 0)`);
+});
+tailwind.config = {
+    theme: {
+        extend: {
+            fontFamily: {
+                sans: ['Inter', 'sans-serif'],
+            },
+            colors: {
+                brand: {
+                    dark: '#0a0a0a',
+                    accent: '#3b82f6',
+                    secondary: '#64748b'
+                }
+            },
+            animation: {
+                'float': 'float 6s ease-in-out infinite',
+            },
+            keyframes: {
+                float: {
+                    '0%, 100%': { transform: 'translateY(0)' },
+                    '50%': { transform: 'translateY(-20px)' },
+                }
+            }
+        }
+    }
+}
+// Enhanced Loading Screen Logic - 2.5 seconds
+window.addEventListener('load', () => {
+    const loadingScreen = document.getElementById('loading-screen');
+    const percentageElement = document.getElementById('loading-percentage');
+    const loadingText = document.getElementById('loading-text');
+    
+    const messages = ['Initializing', 'Loading Assets', 'Almost Ready', 'Welcome'];
+    let messageIndex = 0;
+    let percentage = 0;
+    
+    const totalDuration = 3000; // 2.5 seconds
+    const intervalTime = 30; // Update every 30ms
+    const increments = totalDuration / intervalTime;
+    const percentageStep = 100 / increments;
+    
+    // Animate percentage counter
+    const percentageInterval = setInterval(() => {
+        if (percentage < 100) {
+            percentage += percentageStep;
+            if (percentage > 100) percentage = 100;
+            percentageElement.textContent = Math.floor(percentage);
+            
+            // Change loading text based on percentage
+            if (percentage > 25 && messageIndex === 0) {
+                messageIndex = 1;
+                loadingText.textContent = messages[messageIndex];
+            } else if (percentage > 50 && messageIndex === 1) {
+                messageIndex = 2;
+                loadingText.textContent = messages[messageIndex];
+            } else if (percentage > 80 && messageIndex === 2) {
+                messageIndex = 3;
+                loadingText.textContent = messages[messageIndex];
+            }
+        } else {
+            clearInterval(percentageInterval);
+            // Start fade out immediately when reaching 100%
+            loadingScreen.classList.add('fade-out');
+            setTimeout(() => {
+                loadingScreen.style.display = 'none';
+            }, 800);
+        }
+    }, intervalTime);
+});
+
+// Initialize Lucide icons for loading screen
+if (typeof lucide !== 'undefined') {
+    lucide.createIcons();
+}
